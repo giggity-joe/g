@@ -1,0 +1,361 @@
+-- Ritz Semi Instant GUI
+-- Paste this into your Roblox executor
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ===================== SERVICES =====================
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- ===================== CONFIG =====================
+-- Set your base teleport positions here
+local BASE_1_POSITION = Vector3.new(0, 5, 0)   -- Change to your TP Base 1 coords
+local BASE_2_POSITION = Vector3.new(100, 5, 0) -- Change to your TP Base 2 coords
+
+local SPEED_BOOST_AMOUNT = 50  -- WalkSpeed when Speed Boost is ON (default is 16)
+
+-- ===================== STATE =====================
+local state = {
+    speedBoost = false,
+    autoKick = false,
+    autoPotion = false,
+    minimized = false,
+}
+
+-- ===================== GUI BUILD =====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RitzSemiInstant"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+-- ── MAIN PANEL ──────────────────────────────────────
+local MainPanel = Instance.new("Frame")
+MainPanel.Name = "MainPanel"
+MainPanel.Size = UDim2.new(0, 300, 0, 420)
+MainPanel.Position = UDim2.new(0.5, -150, 0.5, -210)
+MainPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainPanel.BorderSizePixel = 0
+MainPanel.Active = true
+MainPanel.Draggable = true
+MainPanel.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 18)
+MainCorner.Parent = MainPanel
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(220, 0, 0)
+MainStroke.Thickness = 5
+MainStroke.Parent = MainPanel
+
+-- ── TITLE BAR ───────────────────────────────────────
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundTransparency = 1
+TitleBar.Parent = MainPanel
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Text = "Ritz semi instant"
+TitleLabel.Font = Enum.Font.GothamItalic
+TitleLabel.TextSize = 17
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Size = UDim2.new(1, -90, 1, 0)
+TitleLabel.Position = UDim2.new(0, 14, 0, 0)
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- Minimize Button (−)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Text = "−"
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 22
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -68, 0, 5)
+MinBtn.Parent = TitleBar
+
+-- Close Button (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.GothamItalic
+CloseBtn.TextSize = 20
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -36, 0, 5)
+CloseBtn.Parent = TitleBar
+
+-- ── INNER PANEL ─────────────────────────────────────
+local InnerPanel = Instance.new("Frame")
+InnerPanel.Name = "InnerPanel"
+InnerPanel.Size = UDim2.new(1, -20, 1, -50)
+InnerPanel.Position = UDim2.new(0, 10, 0, 45)
+InnerPanel.BackgroundTransparency = 1
+InnerPanel.BorderSizePixel = 0
+InnerPanel.Parent = MainPanel
+
+local InnerStroke = Instance.new("UIStroke")
+InnerStroke.Color = Color3.fromRGB(220, 0, 0)
+InnerStroke.Thickness = 3
+InnerStroke.Parent = InnerPanel
+
+local InnerCorner = Instance.new("UICorner")
+InnerCorner.CornerRadius = UDim.new(0, 12)
+InnerCorner.Parent = InnerPanel
+
+-- "Instant steal" title
+local StealLabel = Instance.new("TextLabel")
+StealLabel.Text = "Instant steal"
+StealLabel.Font = Enum.Font.GothamBoldItalic
+StealLabel.TextSize = 28
+StealLabel.TextColor3 = Color3.fromRGB(255, 30, 30)
+StealLabel.BackgroundTransparency = 1
+StealLabel.Size = UDim2.new(1, 0, 0, 42)
+StealLabel.Position = UDim2.new(0, 0, 0, 8)
+StealLabel.TextXAlignment = Enum.TextXAlignment.Center
+StealLabel.Parent = InnerPanel
+
+-- ── HELPER: Make Button ──────────────────────────────
+local function makeTPButton(text, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBoldItalic
+    btn.TextSize = 19
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    btn.Size = UDim2.new(1, -20, 0, 46)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.Parent = InnerPanel
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end)
+
+    return btn
+end
+
+local TP1Btn = makeTPButton("TP Base 1", 56)
+local TP2Btn = makeTPButton("TP Base 2", 110)
+
+-- ── HELPER: Make Toggle Row ──────────────────────────
+local function makeToggleRow(labelText, yPos)
+    local row = Instance.new("Frame")
+    row.BackgroundTransparency = 1
+    row.Size = UDim2.new(1, -20, 0, 44)
+    row.Position = UDim2.new(0, 10, 0, yPos)
+    row.Parent = InnerPanel
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Text = labelText
+    lbl.Font = Enum.Font.GothamBoldItalic
+    lbl.TextSize = 16
+    lbl.TextColor3 = Color3.fromRGB(255, 30, 30)
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, -84, 1, 0)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextWrapped = true
+    lbl.Parent = row
+
+    local box = Instance.new("TextButton")
+    box.Text = ""
+    box.Size = UDim2.new(0, 68, 0, 34)
+    box.Position = UDim2.new(1, -70, 0.5, -17)
+    box.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    box.BorderSizePixel = 0
+    box.AutoButtonColor = false
+    box.Parent = row
+
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 7)
+    boxCorner.Parent = box
+
+    return box
+end
+
+local SpeedBox  = makeToggleRow("Speed boost", 168)
+local KickBox   = makeToggleRow("Auto Kick\nwhen stolen", 218)
+local PotionBox = makeToggleRow("Auto potion", 276)
+
+-- ── MINIMIZED BAR ────────────────────────────────────
+local MinBar = Instance.new("Frame")
+MinBar.Name = "MinBar"
+MinBar.Size = UDim2.new(0, 280, 0, 46)
+MinBar.Position = UDim2.new(0.5, -140, 0.5, -23)
+MinBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MinBar.BorderSizePixel = 0
+MinBar.Active = true
+MinBar.Draggable = true
+MinBar.Visible = false
+MinBar.Parent = ScreenGui
+
+local MinBarCorner = Instance.new("UICorner")
+MinBarCorner.CornerRadius = UDim.new(0, 10)
+MinBarCorner.Parent = MinBar
+
+local MinBarStroke = Instance.new("UIStroke")
+MinBarStroke.Color = Color3.fromRGB(220, 0, 0)
+MinBarStroke.Thickness = 3
+MinBarStroke.Parent = MinBar
+
+local MinBarLabel = Instance.new("TextLabel")
+MinBarLabel.Text = "Ritz semi instant"
+MinBarLabel.Font = Enum.Font.GothamItalic
+MinBarLabel.TextSize = 17
+MinBarLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBarLabel.BackgroundTransparency = 1
+MinBarLabel.Size = UDim2.new(1, -100, 1, 0)
+MinBarLabel.Position = UDim2.new(0, 14, 0, 0)
+MinBarLabel.TextXAlignment = Enum.TextXAlignment.Left
+MinBarLabel.Parent = MinBar
+
+local RestoreBtn = Instance.new("TextButton")
+RestoreBtn.Text = "+"
+RestoreBtn.Font = Enum.Font.GothamBold
+RestoreBtn.TextSize = 22
+RestoreBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RestoreBtn.BackgroundTransparency = 1
+RestoreBtn.Size = UDim2.new(0, 30, 1, 0)
+RestoreBtn.Position = UDim2.new(1, -66, 0, 0)
+RestoreBtn.Parent = MinBar
+
+local CloseBarBtn = Instance.new("TextButton")
+CloseBarBtn.Text = "X"
+CloseBarBtn.Font = Enum.Font.GothamItalic
+CloseBarBtn.TextSize = 20
+CloseBarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBarBtn.BackgroundTransparency = 1
+CloseBarBtn.Size = UDim2.new(0, 30, 1, 0)
+CloseBarBtn.Position = UDim2.new(1, -34, 0, 0)
+CloseBarBtn.Parent = MinBar
+
+-- ===================== TOGGLE LOGIC =====================
+local function setToggle(box, active)
+    if active then
+        TweenService:Create(box, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(0, 220, 0)
+        }):Play()
+    else
+        TweenService:Create(box, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        }):Play()
+    end
+end
+
+SpeedBox.MouseButton1Click:Connect(function()
+    state.speedBoost = not state.speedBoost
+    setToggle(SpeedBox, state.speedBoost)
+
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = state.speedBoost and SPEED_BOOST_AMOUNT or 16
+        end
+    end
+end)
+
+KickBox.MouseButton1Click:Connect(function()
+    state.autoKick = not state.autoKick
+    setToggle(KickBox, state.autoKick)
+end)
+
+PotionBox.MouseButton1Click:Connect(function()
+    state.autoPotion = not state.autoPotion
+    setToggle(PotionBox, state.autoPotion)
+end)
+
+-- ===================== TP LOGIC =====================
+local function teleportTo(pos)
+    local char = LocalPlayer.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(pos)
+        end
+    end
+end
+
+TP1Btn.MouseButton1Click:Connect(function()
+    teleportTo(BASE_1_POSITION)
+end)
+
+TP2Btn.MouseButton1Click:Connect(function()
+    teleportTo(BASE_2_POSITION)
+end)
+
+-- ===================== WINDOW CONTROLS =====================
+MinBtn.MouseButton1Click:Connect(function()
+    MainPanel.Visible = false
+    MinBar.Visible = true
+    state.minimized = true
+end)
+
+RestoreBtn.MouseButton1Click:Connect(function()
+    MinBar.Visible = false
+    MainPanel.Visible = true
+    state.minimized = false
+end)
+
+local function closeAll()
+    MainPanel.Visible = false
+    MinBar.Visible = false
+end
+
+CloseBtn.MouseButton1Click:Connect(closeAll)
+CloseBarBtn.MouseButton1Click:Connect(closeAll)
+
+-- ===================== AUTO FEATURES LOOP =====================
+-- Speed boost: reapply on respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    if state.speedBoost then
+        local hum = char:WaitForChild("Humanoid")
+        hum.WalkSpeed = SPEED_BOOST_AMOUNT
+    end
+end)
+
+-- Auto Kick loop (fires server kick attempt when a tool is stolen)
+-- NOTE: actual kick requires server-side scripts; this is a client-side stub
+-- You can hook this into your own RemoteEvent if needed
+RunService.Heartbeat:Connect(function()
+    if state.autoKick then
+        -- Add your auto-kick logic here
+        -- Example: fire a RemoteEvent to your server script
+        -- game.ReplicatedStorage.YourRemote:FireServer("kick")
+    end
+
+    if state.autoPotion then
+        -- Add your auto-potion logic here
+        -- Example: use a tool in backpack automatically
+        local char = LocalPlayer.Character
+        if char then
+            local backpack = LocalPlayer:FindFirstChild("Backpack")
+            if backpack then
+                local potion = backpack:FindFirstChild("Potion") -- Change "Potion" to your tool name
+                if potion then
+                    -- equip and activate
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:EquipTool(potion)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+print("[Ritz Semi Instant] GUI Loaded!")
